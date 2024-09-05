@@ -63,5 +63,5 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("Converted amount: %s %s\n", resultCurrency.value, resultCurrency.name)
+	fmt.Printf("Converted Amount: %s %s\n", resultCurrency.value, resultCurrency.name)
 }
