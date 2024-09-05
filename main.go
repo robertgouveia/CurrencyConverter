@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"time"
+	"io"
+	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/huh/spinner"
@@ -13,27 +17,16 @@ type currency struct {
 	value string
 }
 
-var (
-	startCurrency  currency
-	resultCurrency currency
-	confirm        bool
-)
+var resultCurrency currency
 
 func main() {
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewSelect[string]().Title("Which Currency do you want to convert from?").Options(
-				huh.NewOption("USD $", "USD"),
-				huh.NewOption("EUR €", "EUR"),
-				huh.NewOption("GBP £", "GBP"),
-			).Value(&startCurrency.name),
-			huh.NewInput().Title("Enter an amount").Placeholder("0").Value(&startCurrency.value),
+			huh.NewInput().Title("Enter an amount").Placeholder("0").Value(&resultCurrency.value),
 			huh.NewSelect[string]().Title("Which Currency do you want to convert to?").Options(
-				huh.NewOption("USD $", "USD"),
 				huh.NewOption("EUR €", "EUR"),
 				huh.NewOption("GBP £", "GBP"),
 			).Value(&resultCurrency.name),
-			huh.NewConfirm().Title("Are you sure you want to convert?").Value(&confirm),
 		),
 	)
 
@@ -43,9 +36,26 @@ func main() {
 	}
 
 	convert := func() {
-		time.Sleep(2 * time.Second)
-		fmt.Println("Converting...")
-		resultCurrency.value = "100"
+		resp, err := http.Get("https://openexchangerates.org/api/latest.json?app_id=" + os.Getenv("CURRENCY_API_KEY"))
+		if err != nil {
+			panic(err)
+		}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+
+		var data map[string]interface{}
+		json.Unmarshal(body, &data)
+
+		rates := data["rates"].(map[string]interface{})
+		for key, value := range rates {
+			if key == resultCurrency.name {
+				resultFloat, err := strconv.ParseFloat(resultCurrency.value, 64)
+				if err != nil {
+					panic(err)
+				}
+				resultCurrency.value = fmt.Sprintf("%.2f", resultFloat*value.(float64))
+			}
+		}
 	}
 
 	err = spinner.New().Title("Converting currency...").Action(convert).Run()
@@ -53,5 +63,5 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(resultCurrency.name, ":", resultCurrency.value)
+	fmt.Printf("Converted amount: %s %s\n", resultCurrency.value, resultCurrency.name)
 }
