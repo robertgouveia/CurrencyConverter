@@ -32,6 +32,7 @@ require (
 
 require (
 	github.com/charmbracelet/huh v0.5.3
+	github.com/charmbracelet/huh/spinner v0.0.0-20240829113522-b963c398e1f1
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 )
